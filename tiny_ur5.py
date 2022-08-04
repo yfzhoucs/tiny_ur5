@@ -149,9 +149,36 @@ class TinyUR5Env(gym.Env):
 
         self.positions = np.array([[360, 120], [40, 120], [80, 180]])
 
+        self.grab = None
+        self.grab_position = None
+
 
     def _eef_(self):
-        return 20, 20
+
+        start_x = 0
+        start_y = 0
+        end_x = 200
+        end_y = 10
+        angle = 0
+        for i in range(self.robot_joints.shape[0] - 1):
+            if i < 2:
+                start_x = end_x
+                start_y = end_y
+                angle = angle + self.robot_joints[i]
+                end_x = start_x + np.sin(angle) * self.lim_length
+                end_y = start_y + np.cos(angle) * self.lim_length
+                mid_x = (start_x + end_x) / 2
+                mid_y = (start_y + end_y) / 2
+
+            elif i == 2:
+                start_x = end_x
+                start_y = end_y
+                angle = angle + self.robot_joints[i]
+                end_x = start_x + np.sin(angle) * 40
+                end_y = start_y + np.cos(angle) * 40
+                mid_x = (start_x + end_x) / 2
+                mid_y = (start_y + end_y) / 2
+        return np.array([mid_x, mid_y])
 
     def _l2_(self, eef, position):
         return ((eef[0] - position[0]) ** 2 + (eef[1] - position[1]) ** 2) ** (1/2)
@@ -160,6 +187,13 @@ class TinyUR5Env(gym.Env):
     def _grab_(self, position, eef):
         grab = (self._l2_(eef, position) < 5)
         return grab
+
+
+    def _gripper_closed_(self):
+        if self.robot_joints[-1] >= 0:
+            return True
+        else:
+            return False
 
 
     def step(self, action: np.ndarray):
@@ -190,7 +224,12 @@ class TinyUR5Env(gym.Env):
         print(self.robot_joints)
         self.renderer.render_step()
 
-        return self.robot_joints, reward, terminated, {}
+        state = {
+            'joints': self.robot_joints,
+            'positions': self.positions
+        }
+
+        return state, reward, terminated, {}
 
     def reset(
         self,
@@ -297,7 +336,7 @@ class TinyUR5Env(gym.Env):
                 mid_y = (start_y + end_y) / 2
 
                 print('gripper angle:', self.robot_joints[-1])
-                if self.robot_joints[-1] >= 0:
+                if self.robot_joints[-1] < 0:
                     image_gripper_open_transformed = pygame.transform.rotate(self.image_gripper_open, np.rad2deg(angle))
                     new_rect = image_gripper_open_transformed.get_rect()
                     self.surf.blit(image_gripper_open_transformed, (mid_x - new_rect[2] / 2, mid_y - new_rect[3] / 2))
