@@ -19,10 +19,12 @@ import numpy as np
 
 import gym
 from gym import spaces
-from gym.envs.classic_control import utils
+# from gym.envs.classic_control import utils
 from gym.error import DependencyNotInstalled
-from gym.utils.renderer import Renderer
+# from gym.utils.renderer import Renderer
 import pygame
+import scipy
+import yaml
 
 
 class TinyUR5Env(gym.Env):
@@ -83,7 +85,16 @@ class TinyUR5Env(gym.Env):
         "render_fps": 30,
     }
 
-    def __init__(self, render_mode: Optional[str] = None, goal_velocity=0):
+    def __init__(self, yaml_file='config.yaml', render_mode: Optional[str] = None, goal_velocity=0, screen_width=1600, screen_height=800):
+
+        with open(yaml_file, "r") as stream:
+            try:
+                config = yaml.safe_load(stream)
+                print(config, type(config))
+            except yaml.YAMLError as exc:
+                print(exc)
+        # exit()
+
         self.min_action = -np.pi * 2 - 0.01
         self.max_action = np.pi * 2 + 0.01
         self.min_position = -1.2
@@ -103,10 +114,14 @@ class TinyUR5Env(gym.Env):
         )
 
         self.render_mode = render_mode
-        self.renderer = Renderer(self.render_mode, self._render)
+        # self.renderer = Renderer(self.render_mode, self._render)
 
-        self.screen_width = 400
-        self.screen_height = 200
+        self.scale = config['scale']
+        self.screen_width = int(config['desk_width'] * self.scale)
+        self.screen_height = int(config['desk_height'] * self.scale)
+        self.robot_base_xy = [config['robot']['base_x'] * self.scale, config['robot']['base_y'] * self.scale]
+        self.tool_center_point = config['robot']['tool_center_point_distance'] * self.scale
+        self.tool_img_mid_point = config['robot']['tool_img_mid_point'] * self.scale
         self.screen = None
         self.clock = None
         self.isopen = True
@@ -119,36 +134,37 @@ class TinyUR5Env(gym.Env):
         )
 
         self.robot_joints = np.zeros((4,), dtype=np.float32)
-        self.lim_length = 70
+        self.robot_joints[0] = -1.57
+        self.robot_joints[1] = 1.57
+        self.robot_joints[2] = 1.57
+        self.robot_joints_init = np.zeros((4,), dtype=np.float32)
+        self.robot_joints_init[0] = -1.57
+        self.robot_joints_init[1] = 1.57
+        self.robot_joints_init[2] = 1.57
+        self.lim_length = config['objects']['lim']['length'] * self.scale
 
         self.Kp = 15
         self.dt = 0.003
 
+        self.env_objs = {}
+        for obj in config['objects']:
+            print(obj)
+            print(config['objects'][obj])
+            self.env_objs[obj] = {}
 
-        self.image_lim = pygame.image.load('assets/lim.png')
-        self.image_lim = pygame.transform.scale(self.image_lim, (20, 90))
+            self.env_objs[obj]['size_xy'] = [config['objects'][obj]['size']['x'] * self.scale, 
+                    config['objects'][obj]['size']['y'] * self.scale]
 
-        self.image_gripper_open = pygame.image.load('assets/gripper_open.png')
-        self.image_gripper_open = pygame.transform.scale(self.image_gripper_open, (20, 20))
-
-        self.image_gripper_closed = pygame.image.load('assets/gripper_closed.png')
-        self.image_gripper_closed = pygame.transform.scale(self.image_gripper_closed, (17, 24))
-
-        self.image_wood = pygame.image.load('assets/wood.jpg')
-        self.image_wood = pygame.transform.scale(self.image_wood, (400, 200))
-
-        self.image_apple = pygame.image.load('assets/apple.png')
-        self.image_apple = pygame.transform.scale(self.image_apple, (20, 20))
-
-        self.image_orange = pygame.image.load('assets/orange.png')
-        self.image_orange = pygame.transform.scale(self.image_orange, (20, 20))
-
-        self.image_banana = pygame.image.load('assets/banana.png')
-        self.image_banana = pygame.transform.scale(self.image_banana, (30, 20))
-
-
-        self.positions = np.array([[360, 120], [40, 120], [80, 180]])
-
+            if 'position' in config['objects'][obj]:
+                self.env_objs[obj]['pos_xy'] = [config['objects'][obj]['position']['x'] * self.scale, 
+                        config['objects'][obj]['position']['y'] * self.scale]
+            
+            obj_img = pygame.image.load(config['objects'][obj]['image'])
+            self.env_objs[obj]['image'] = \
+                pygame.transform.smoothscale(
+                    obj_img, 
+                    self.env_objs[obj]['size_xy'])
+        # exit()
         self.grab = None
         self.grab_position = None
 
@@ -157,8 +173,8 @@ class TinyUR5Env(gym.Env):
 
         start_x = 0
         start_y = 0
-        end_x = 200
-        end_y = 10
+        end_x = self.robot_base_xy[0]
+        end_y = self.robot_base_xy[1]
         angle = 0
         for i in range(self.robot_joints.shape[0] - 1):
             if i < 2:
@@ -167,18 +183,18 @@ class TinyUR5Env(gym.Env):
                 angle = angle + self.robot_joints[i]
                 end_x = start_x + np.sin(angle) * self.lim_length
                 end_y = start_y + np.cos(angle) * self.lim_length
-                mid_x = (start_x + end_x) / 2
-                mid_y = (start_y + end_y) / 2
+                # mid_x = (start_x + end_x) / 2
+                # mid_y = (start_y + end_y) / 2
 
             elif i == 2:
                 start_x = end_x
                 start_y = end_y
                 angle = angle + self.robot_joints[i]
-                end_x = start_x + np.sin(angle) * 40
-                end_y = start_y + np.cos(angle) * 40
-                mid_x = (start_x + end_x) / 2
-                mid_y = (start_y + end_y) / 2
-        return np.array([mid_x, mid_y])
+                end_x = start_x + np.sin(angle) * self.tool_center_point
+                end_y = start_y + np.cos(angle) * self.tool_center_point
+                # mid_x = (start_x + end_x) / 2
+                # mid_y = (start_y + end_y) / 2
+        return np.array([end_x, end_y])
 
     def _l2_(self, eef, position):
         return ((eef[0] - position[0]) ** 2 + (eef[1] - position[1]) ** 2) ** (1/2)
@@ -209,24 +225,31 @@ class TinyUR5Env(gym.Env):
 
         eef = self._eef_()
 
-        if self.grab is not None:
-            self.positions[grab_position] = eef + self.grab_position
 
+        if self.grab is not None:
+            self.positions[self.grab] = eef + self.grab_position
+        # print(self.grab_position, eef, self.positions[1], 1)
 
         self.grab = None
         self.grab_position = None
         if self._gripper_closed_():
-            for i in range(len(self.positions)):
-                if self._grab_(self.positions[i], eef):
+            for obj in self.env_objs:
+                if 'position' not in self.env_objs[obj]:
+                    continue
+                if self._grab_(self.env_objs[obj]['pos_xy'], eef):
                     self.grab = i
-                    self.grab_position = self.positions[i] - eef
+                    self.grab_position = self.env_objs[obj]['pos_xy'] - eef
+        # print(self.grab_position, eef, self.positions[1], 2)
 
-        print(self.robot_joints)
-        self.renderer.render_step()
+
+        # self.renderer.render_step()
 
         state = {
             'joints': self.robot_joints,
-            'positions': self.positions
+            'eef': self._eef_(),
+            'positions': [self.env_objs[obj]['pos_xy'] for obj in self.env_objs if 'pos_xy' in self.env_objs[obj]],
+            'grabbed_object': self.grab,
+            'grab_position': self.grab_position
         }
 
         return state, reward, terminated, {}
@@ -241,10 +264,11 @@ class TinyUR5Env(gym.Env):
         super().reset(seed=seed)
         # Note that if you use custom reset bounds, it may lead to out-of-bound
         # state/observations.
-        low, high = utils.maybe_parse_reset_bounds(options, -0.6, -0.4)
-        self.state = np.array([self.np_random.uniform(low=low, high=high), 0])
-        self.renderer.reset()
-        self.renderer.render_step()
+        # low, high = utils.maybe_parse_reset_bounds(options, -0.6, -0.4)
+        # self.state = np.array([self.np_random.uniform(low=low, high=high), 0])
+        self.state = np.array([self.np_random.uniform(low=-0.6, high=-0.4), 0])
+        # self.renderer.reset()
+        # self.renderer.render_step()
         if not return_info:
             return np.array(self.state, dtype=np.float32)
         else:
@@ -259,10 +283,12 @@ class TinyUR5Env(gym.Env):
         return (theta1 - theta2 + np.pi) % (2 * np.pi) - np.pi
 
     def render(self, mode="human"):
-        if self.render_mode is not None:
-            return self.renderer.get_renders()
-        else:
-            return self._render(mode)
+        # if self.render_mode is not None:
+        #     return self.renderer.get_renders()
+        # else:
+        #     return self._render(mode)
+        return self._render(mode)
+
 
     def _blitRotate(self, surf, image, origin, pivot, angle):
         image_rect = image.get_rect(topleft = (origin[0] - pivot[0], origin[1]-pivot[1]))
@@ -272,6 +298,72 @@ class TinyUR5Env(gym.Env):
         rotated_image = pygame.transform.rotate(image, angle)
         rotated_image_rect = rotated_image.get_rect(center = rotated_image_center)
         surf.blit(rotated_image, rotated_image_rect)
+
+
+    def ik(self, xy):
+
+        def x_constraint(q, xy):
+            """Returns the corresponding hand xy coordinates for
+            a given set of joint angle values [shoulder, elbow, wrist],
+            and the above defined arm segment lengths, L
+            q : np.array
+                the list of current joint angles
+            xy : np.array
+                current xy position (not used)
+            returns : np.array
+                the difference between current and desired x position
+            """
+            return self.lim_length * np.sin(q[0]) + self.lim_length * np.sin(q[0] + q[1]) + self.tool_center_point * np.sin(q[0] + q[1] + q[2]) - xy[0]
+
+        def y_constraint(q, xy):
+            """Returns the corresponding hand xy coordinates for
+            a given set of joint angle values [shoulder, elbow, wrist],
+            and the above defined arm segment lengths, L
+            q : np.array
+                the list of current joint angles
+            xy : np.array
+                current xy position (not used)
+            returns : np.array
+                the difference between current and desired y position
+            """
+            return self.lim_length * np.cos(q[0]) + self.lim_length * np.cos(q[0] + q[1]) + self.tool_center_point * np.cos(q[0] + q[1] + q[2]) - xy[1]
+
+
+        def distance_to_default(q, *args):
+            """Objective function to minimize
+            Calculates the euclidean distance through joint space to the
+            default arm configuration. The weight list allows the penalty of
+            each joint being away from the resting position to be scaled
+            differently, such that the arm tries to stay closer to resting
+            state more for higher weighted joints than those with a lower
+            weight.
+            q : np.array
+                the list of current joint angles
+            returns : scalar
+                euclidean distance to the default arm position
+            """
+            # weights found with trial and error,
+            # get some wrist bend, but not much
+            weight = [1, 1, 0.5]
+            return np.sqrt(np.sum([(qi - q0i)**2 * wi
+                           for qi, q0i, wi in zip(q, self.robot_joints_init.tolist()[:-1], weight)]))
+
+        ik_result = scipy.optimize.fmin_slsqp(
+            func=distance_to_default,
+            x0=self.robot_joints,
+            eqcons=[x_constraint,
+                    y_constraint],
+            # uncomment to add in min / max angles for the joints
+            # ieqcons=[joint_limits_upper_constraint,
+            #          joint_limits_lower_constraint],
+            args=(xy,),
+            iprint=0)  # iprint=0 suppresses output
+        return ik_result
+    
+    def _calculate_img_starting_pos(self, img_pos, img_size):
+        x = img_pos[0] - img_size[0] / 2
+        y = img_pos[1] - img_size[1] / 2
+        return [x, y]
 
     def _render(self, mode="human"):
         assert mode in self.metadata["render_modes"]
@@ -296,22 +388,28 @@ class TinyUR5Env(gym.Env):
         if self.clock is None:
             self.clock = pygame.time.Clock()
 
-        world_width = 200
-        scale = self.screen_width / world_width
+        # world_width = 200
+        # scale = self.screen_width / world_width
 
         self.surf = pygame.Surface((self.screen_width, self.screen_height))
         self.surf.fill((255, 255, 255))
 
 
-        self.surf.blit(self.image_wood, (0, 0))
-        self.surf.blit(self.image_apple, self.positions[0])
-        self.surf.blit(self.image_orange, self.positions[1])
-        self.surf.blit(self.image_banana, self.positions[2])
+        self.surf.blit(self.env_objs['wood']['image'], (0, 0))
+        for obj in self.env_objs:
+            if 'pos_xy' in self.env_objs[obj]:
+                self.surf.blit(self.env_objs[obj]['image'], self._calculate_img_starting_pos(
+                    self.env_objs[obj]['pos_xy'],
+                    self.env_objs[obj]['size_xy']
+                ))
+        # self.surf.blit(self.image_apple, self.positions[0] - self.size[0] / 2)
+        # self.surf.blit(self.image_orange, self.positions[1] - self.size[1] / 2)
+        # self.surf.blit(self.image_banana, self.positions[2] - self.size[2] / 2)
 
         start_x = 0
         start_y = 0
-        end_x = 200
-        end_y = 10
+        end_x = self.robot_base_xy[0]
+        end_y = self.robot_base_xy[1]
         angle = 0
         for i in range(self.robot_joints.shape[0] - 1):
             if i < 2:
@@ -323,25 +421,25 @@ class TinyUR5Env(gym.Env):
                 mid_x = (start_x + end_x) / 2
                 mid_y = (start_y + end_y) / 2
 
-                image_lim_transformed = pygame.transform.rotate(self.image_lim, np.rad2deg(angle))
+                image_lim_transformed = pygame.transform.rotate(self.env_objs['lim']['image'], np.rad2deg(angle))
                 new_rect = image_lim_transformed.get_rect()
                 self.surf.blit(image_lim_transformed, (mid_x - new_rect[2] / 2, mid_y - new_rect[3] / 2))
             elif i == 2:
                 start_x = end_x
                 start_y = end_y
                 angle = angle + self.robot_joints[i]
-                end_x = start_x + np.sin(angle) * 40
-                end_y = start_y + np.cos(angle) * 40
-                mid_x = (start_x + end_x) / 2
-                mid_y = (start_y + end_y) / 2
 
                 print('gripper angle:', self.robot_joints[-1])
-                if self.robot_joints[-1] < 0:
-                    image_gripper_open_transformed = pygame.transform.rotate(self.image_gripper_open, np.rad2deg(angle))
+                if self._gripper_closed_():
+                    mid_x = start_x + np.sin(angle) * self.env_objs['gripper_closed']['size_xy'][1]
+                    mid_y = start_y + np.cos(angle) * self.env_objs['gripper_closed']['size_xy'][1]
+                    image_gripper_open_transformed = pygame.transform.rotate(self.env_objs['gripper_closed']['image'], np.rad2deg(angle))
                     new_rect = image_gripper_open_transformed.get_rect()
                     self.surf.blit(image_gripper_open_transformed, (mid_x - new_rect[2] / 2, mid_y - new_rect[3] / 2))
                 else:
-                    image_gripper_closed_transformed = pygame.transform.rotate(self.image_gripper_closed, np.rad2deg(angle))
+                    mid_x = start_x + np.sin(angle) * self.env_objs['gripper_open']['size_xy'][1]
+                    mid_y = start_y + np.cos(angle) * self.env_objs['gripper_open']['size_xy'][1]
+                    image_gripper_closed_transformed = pygame.transform.rotate(self.env_objs['gripper_open']['image'], np.rad2deg(angle))
                     new_rect = image_gripper_closed_transformed.get_rect()
                     self.surf.blit(image_gripper_closed_transformed, (mid_x - new_rect[2] / 2, mid_y - new_rect[3] / 2))
 

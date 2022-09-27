@@ -1,0 +1,126 @@
+desk_width: 1200
+desk_height: 700
+scale: 0.3
+
+robot:
+  base_x: 600
+  base_y: 100
+  tool_center_point_distance: 110
+  tool_img_mid_point: 80
+
+objects:
+
+  wood:
+    size:
+      x: 1200
+      y: 700
+    image: 'assets/wood.jpg'
+
+  lim:
+    size:
+      x: 80
+      y: 360
+    image: 'assets/lim.png'
+    length: 280
+
+  gripper_open:
+    size:
+      x: 80
+      y: 80
+    image: 'assets/gripper_open.png'
+  
+  gripper_closed:
+    size:
+      x: 68
+      y: 96
+    image: 'assets/gripper_closed.png'
+
+  orange:
+    size: 
+      x: 80
+      y: 80
+    image: 'assets/orange.png'
+    position:
+      x: 240
+      y: 400
+
+  orange2:
+    size: 
+      x: 80
+      y: 80
+    image: 'assets/orange.png'
+    position:
+      x: 600
+      y: 400
+
+  apple:
+    size: 
+      x: 80
+      y: 80
+    image: 'assets/apple.png'
+    position:
+      x: 160
+      y: 400
+
+  tomato:
+    size: 
+      x: 80
+      y: 80
+    image: 'assets/tomato.png'
+    position:
+      x: 600
+      y: 240
+
+  strawberry:
+    size: 
+      x: 80
+      y: 80
+    image: 'assets/strawberry.png'
+    position:
+      x: 800
+      y: 240
+
+  watermelon:
+    size: 
+      x: 80
+      y: 80
+    image: 'assets/watermelon.png'
+    position:
+      x: 900
+      y: 120
+
+  banana:
+    size: 
+      x: 120
+      y: 80
+    image: 'assets/banana.png'  
+    position:
+      x: 240
+      y: 200
+  
+  milk_bottle:
+    size: 
+      x: 120
+      y: 360
+    image: 'assets/milk_bottle.png'  
+    position:
+      x: 1000
+      y: 200
+        
+  clock:
+    size: 
+      x: 100
+      y: 100
+    image: 'assets/clock.png'  
+    position:
+      x: 1000
+      y: 400
+
+  camera:
+    size: 
+      x: 100
+      y: 100
+    image: 'assets/camera.png'  
+    position:
+      x: 1000
+      y: 600
