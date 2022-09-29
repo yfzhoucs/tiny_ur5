@@ -148,8 +148,8 @@ class TinyUR5Env(gym.Env):
 
         self.env_objs = {}
         for obj in config['objects']:
-            print(obj)
-            print(config['objects'][obj])
+            # print(obj)
+            # print(config['objects'][obj])
             self.env_objs[obj] = {}
 
             self.env_objs[obj]['size_xy'] = [config['objects'][obj]['size']['x'] * self.scale, 
@@ -201,7 +201,7 @@ class TinyUR5Env(gym.Env):
 
 
     def _grab_(self, position, eef):
-        grab = (self._l2_(eef, position) < 5)
+        grab = (self._l2_(eef, position) < 10 * self.scale)
         return grab
 
 
@@ -227,18 +227,22 @@ class TinyUR5Env(gym.Env):
 
 
         if self.grab is not None:
-            self.positions[self.grab] = eef + self.grab_position
+            self.env_objs[self.grab]['pos_xy'] = eef + self.grab_position
         # print(self.grab_position, eef, self.positions[1], 1)
 
         self.grab = None
         self.grab_position = None
         if self._gripper_closed_():
-            for obj in self.env_objs:
-                if 'position' not in self.env_objs[obj]:
-                    continue
-                if self._grab_(self.env_objs[obj]['pos_xy'], eef):
-                    self.grab = i
-                    self.grab_position = self.env_objs[obj]['pos_xy'] - eef
+            if self.grab is None:
+                for obj in self.env_objs:
+                    if 'pos_xy' not in self.env_objs[obj]:
+                        continue
+                    if self._grab_(self.env_objs[obj]['pos_xy'], eef):
+                        self.grab = obj
+                        self.grab_position = self.env_objs[obj]['pos_xy'] - eef
+        else:
+            self.grab = None
+            self.grab_position = None
         # print(self.grab_position, eef, self.positions[1], 2)
 
 
@@ -313,6 +317,7 @@ class TinyUR5Env(gym.Env):
             returns : np.array
                 the difference between current and desired x position
             """
+            xy = [self.scale * x for x in xy]
             return self.lim_length * np.sin(q[0]) + self.lim_length * np.sin(q[0] + q[1]) + self.tool_center_point * np.sin(q[0] + q[1] + q[2]) - xy[0]
 
         def y_constraint(q, xy):
@@ -326,6 +331,7 @@ class TinyUR5Env(gym.Env):
             returns : np.array
                 the difference between current and desired y position
             """
+            xy = [self.scale * x for x in xy]
             return self.lim_length * np.cos(q[0]) + self.lim_length * np.cos(q[0] + q[1]) + self.tool_center_point * np.cos(q[0] + q[1] + q[2]) - xy[1]
 
 
@@ -429,7 +435,7 @@ class TinyUR5Env(gym.Env):
                 start_y = end_y
                 angle = angle + self.robot_joints[i]
 
-                print('gripper angle:', self.robot_joints[-1])
+                # print('gripper angle:', self.robot_joints[-1])
                 if self._gripper_closed_():
                     mid_x = start_x + np.sin(angle) * self.env_objs['gripper_closed']['size_xy'][1]
                     mid_y = start_y + np.cos(angle) * self.env_objs['gripper_closed']['size_xy'][1]
