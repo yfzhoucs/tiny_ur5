@@ -39,88 +39,108 @@ objects:
     size: 
       x: 80
       y: 80
+      z: 100
     image: 'assets/orange.png'
     position:
       x: 240
       y: 400
+      z: 0
 
-  # orange2:
-  #   size: 
-  #     x: 80
-  #     y: 80
-  #   image: 'assets/orange.png'
-  #   position:
-  #     x: 600
-  #     y: 400
+  orange2:
+    size: 
+      x: 80
+      y: 80
+      z: 100
+    image: 'assets/orange.png'
+    position:
+      x: 600
+      y: 400
+      z: 0
 
   apple:
     size: 
       x: 80
       y: 80
+      z: 100
     image: 'assets/apple.png'
     position:
       x: 160
       y: 400
+      z: 0
 
   tomato:
     size: 
       x: 80
       y: 80
+      z: 100
     image: 'assets/tomato.png'
     position:
       x: 600
       y: 240
+      z: 0
 
   strawberry:
     size: 
       x: 80
       y: 80
+      z: 100
     image: 'assets/strawberry.png'
     position:
       x: 800
       y: 240
+      z: 0
 
   watermelon:
     size: 
       x: 80
       y: 80
+      z: 100
     image: 'assets/watermelon.png'
     position:
       x: 900
       y: 120
+      z: 0
 
   banana:
     size: 
       x: 120
       y: 80
+      z: 100
     image: 'assets/banana.png'  
     position:
       x: 240
       y: 200
+      z: 0
   
   milk_bottle:
     size: 
       x: 120
       y: 360
+      z: 100
     image: 'assets/milk_bottle.png'  
     position:
       x: 1000
       y: 200
+      z: 0
         
   clock:
     size: 
       x: 100
       y: 100
+      z: 100
     image: 'assets/clock.png'  
     position:
       x: 1000
       y: 400
+      z: 0
 
   camera:
     size: 
       x: 100
       y: 100
+      z: 100
     image: 'assets/camera.png'  
     position:
       x: 1000
       y: 600
+      z: 0

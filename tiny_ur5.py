@@ -25,6 +25,7 @@ from gym.error import DependencyNotInstalled
 import pygame
 import scipy
 import yaml
+from collections import OrderedDict
 
 
 class TinyUR5Env(gym.Env):
@@ -90,7 +91,7 @@ class TinyUR5Env(gym.Env):
         with open(yaml_file, "r") as stream:
             try:
                 config = yaml.safe_load(stream)
-                print(config, type(config))
+                # print(config, type(config))
             except yaml.YAMLError as exc:
                 print(exc)
         # exit()
@@ -146,27 +147,45 @@ class TinyUR5Env(gym.Env):
         self.Kp = 15
         self.dt = 0.003
 
+        self.manip_objs = OrderedDict()
         self.env_objs = {}
         for obj in config['objects']:
             # print(obj)
             # print(config['objects'][obj])
-            self.env_objs[obj] = {}
+            obj_img = pygame.image.load(config['objects'][obj]['image'])
 
-            self.env_objs[obj]['size_xy'] = [config['objects'][obj]['size']['x'] * self.scale, 
-                    config['objects'][obj]['size']['y'] * self.scale]
+            if 'position' not in config['objects'][obj]:
+                self.env_objs[obj] = {}
+                self.env_objs[obj]['size_xy'] = [config['objects'][obj]['size']['x'] * self.scale, 
+                        config['objects'][obj]['size']['y'] * self.scale]
+
+                self.env_objs[obj]['image'] = \
+                    pygame.transform.smoothscale(
+                        obj_img, 
+                        self.env_objs[obj]['size_xy'])
 
             if 'position' in config['objects'][obj]:
-                self.env_objs[obj]['pos_xy'] = [config['objects'][obj]['position']['x'] * self.scale, 
+                self.manip_objs[obj] = {}
+                self.manip_objs[obj]['size_xy'] = [config['objects'][obj]['size']['x'] * self.scale, 
+                        config['objects'][obj]['size']['y'] * self.scale]
+                self.manip_objs[obj]['pos_xy'] = [config['objects'][obj]['position']['x'] * self.scale, 
                         config['objects'][obj]['position']['y'] * self.scale]
+                self.manip_objs[obj]['pos_z'] = config['objects'][obj]['position']['z'] * self.scale
+                self.manip_objs[obj]['size_z'] = config['objects'][obj]['size']['z'] * self.scale
+                self.manip_objs[obj]['lru_score'] = 0
             
-            obj_img = pygame.image.load(config['objects'][obj]['image'])
-            self.env_objs[obj]['image'] = \
-                pygame.transform.smoothscale(
-                    obj_img, 
-                    self.env_objs[obj]['size_xy'])
+                self.manip_objs[obj]['image'] = \
+                    pygame.transform.smoothscale(
+                        obj_img, 
+                        self.manip_objs[obj]['size_xy'])
         # exit()
+
+        print(self.env_objs)
+        self.eef_z = 120 * self.scale
         self.grab = None
         self.grab_position = None
+        self.grab_position_z = None
+        self.highest_lru_score = 0
 
 
     def _eef_(self):
@@ -205,6 +224,16 @@ class TinyUR5Env(gym.Env):
         return grab
 
 
+    def _grab_z_(self, env_obj, eef_z):
+        lower_bound = env_obj['pos_z']
+        upper_bound = env_obj['pos_z'] + env_obj['size_z']
+        # print(f'bounds: {lower_bound}, {upper_bound}')
+        if eef_z >= lower_bound and eef_z <= upper_bound:
+            return True
+        else:
+            return False
+
+
     def _gripper_closed_(self):
         if self.robot_joints[-1] >= 0:
             return True
@@ -212,7 +241,8 @@ class TinyUR5Env(gym.Env):
             return False
 
 
-    def step(self, action: np.ndarray):
+    def step(self, action: np.ndarray, eef_z=None):
+        print([self.manip_objs[env_obj]['lru_score'] for env_obj in self.manip_objs if 'pos_xy' in self.manip_objs[env_obj]])
 
         # Convert a possible numpy bool to a Python bool.
         terminated = False
@@ -224,22 +254,34 @@ class TinyUR5Env(gym.Env):
             self.robot_joints[i] = self.robot_joints[i] + self.Kp * self._ang_diff(action[i], self.robot_joints[i]) * self.dt
 
         eef = self._eef_()
+        if eef_z is not None:
+            self.eef_z = eef_z * self.scale
+        # print(f'eef_z: {self.eef_z}')
 
 
         if self.grab is not None:
-            self.env_objs[self.grab]['pos_xy'] = eef + self.grab_position
+            self.manip_objs[self.grab]['pos_xy'] = eef + self.grab_position
+            self.manip_objs[self.grab]['pos_z'] = self.eef_z + self.grab_position_z
+
+            if self.manip_objs[self.grab]['pos_z'] < 0:
+                self.manip_objs[self.grab]['pos_z'] = 0
+                self.grab_position_z = self.manip_objs[self.grab]['pos_z'] - self.eef_z
         # print(self.grab_position, eef, self.positions[1], 1)
 
-        self.grab = None
-        self.grab_position = None
+        # self.grab = None
+        # self.grab_position = None
         if self._gripper_closed_():
             if self.grab is None:
-                for obj in self.env_objs:
-                    if 'pos_xy' not in self.env_objs[obj]:
+                for obj in self.manip_objs:
+                    if 'pos_xy' not in self.manip_objs[obj]:
                         continue
-                    if self._grab_(self.env_objs[obj]['pos_xy'], eef):
+                    if self._grab_(self.manip_objs[obj]['pos_xy'], eef) and self._grab_z_(self.manip_objs[obj], self.eef_z):
                         self.grab = obj
-                        self.grab_position = self.env_objs[obj]['pos_xy'] - eef
+                        self.grab_position = self.manip_objs[obj]['pos_xy'] - eef
+                        self.grab_position_z = self.manip_objs[self.grab]['pos_z'] - self.eef_z
+                        self.highest_lru_score += 1
+                        self.manip_objs[obj]['lru_score'] = self.highest_lru_score
+                        self.manip_objs.move_to_end(obj, last=False)
         else:
             self.grab = None
             self.grab_position = None
@@ -251,7 +293,7 @@ class TinyUR5Env(gym.Env):
         state = {
             'joints': self.robot_joints,
             'eef': self._eef_(),
-            'positions': [self.env_objs[obj]['pos_xy'] for obj in self.env_objs if 'pos_xy' in self.env_objs[obj]],
+            'positions': [self.manip_objs[obj]['pos_xy'] for obj in self.manip_objs if 'pos_xy' in self.manip_objs[obj]],
             'grabbed_object': self.grab,
             'grab_position': self.grab_position
         }
@@ -402,11 +444,11 @@ class TinyUR5Env(gym.Env):
 
 
         self.surf.blit(self.env_objs['wood']['image'], (0, 0))
-        for obj in self.env_objs:
-            if 'pos_xy' in self.env_objs[obj]:
-                self.surf.blit(self.env_objs[obj]['image'], self._calculate_img_starting_pos(
-                    self.env_objs[obj]['pos_xy'],
-                    self.env_objs[obj]['size_xy']
+        for obj in list(self.manip_objs.keys())[::-1]:
+            if 'pos_xy' in self.manip_objs[obj]:
+                self.surf.blit(self.manip_objs[obj]['image'], self._calculate_img_starting_pos(
+                    self.manip_objs[obj]['pos_xy'],
+                    self.manip_objs[obj]['size_xy']
                 ))
         # self.surf.blit(self.image_apple, self.positions[0] - self.size[0] / 2)
         # self.surf.blit(self.image_orange, self.positions[1] - self.size[1] / 2)
