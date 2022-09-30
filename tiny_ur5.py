@@ -437,17 +437,17 @@ class TinyUR5Env(gym.Env):
 
                 # print('gripper angle:', self.robot_joints[-1])
                 if self._gripper_closed_():
-                    mid_x = start_x + np.sin(angle) * self.env_objs['gripper_closed']['size_xy'][1]
-                    mid_y = start_y + np.cos(angle) * self.env_objs['gripper_closed']['size_xy'][1]
-                    image_gripper_open_transformed = pygame.transform.rotate(self.env_objs['gripper_closed']['image'], np.rad2deg(angle))
-                    new_rect = image_gripper_open_transformed.get_rect()
-                    self.surf.blit(image_gripper_open_transformed, (mid_x - new_rect[2] / 2, mid_y - new_rect[3] / 2))
-                else:
-                    mid_x = start_x + np.sin(angle) * self.env_objs['gripper_open']['size_xy'][1]
-                    mid_y = start_y + np.cos(angle) * self.env_objs['gripper_open']['size_xy'][1]
-                    image_gripper_closed_transformed = pygame.transform.rotate(self.env_objs['gripper_open']['image'], np.rad2deg(angle))
+                    mid_x = start_x + np.sin(angle) * (self.env_objs['gripper_closed']['size_xy'][1] / 2 + 38 * self.scale)
+                    mid_y = start_y + np.cos(angle) * (self.env_objs['gripper_closed']['size_xy'][1] / 2 + 38 * self.scale)
+                    image_gripper_closed_transformed = pygame.transform.rotate(self.env_objs['gripper_closed']['image'], np.rad2deg(angle))
                     new_rect = image_gripper_closed_transformed.get_rect()
                     self.surf.blit(image_gripper_closed_transformed, (mid_x - new_rect[2] / 2, mid_y - new_rect[3] / 2))
+                else:
+                    mid_x = start_x + np.sin(angle) * (self.env_objs['gripper_open']['size_xy'][1] / 2 + 38 * self.scale)
+                    mid_y = start_y + np.cos(angle) * (self.env_objs['gripper_open']['size_xy'][1] / 2 + 38 * self.scale)
+                    image_gripper_open_transformed = pygame.transform.rotate(self.env_objs['gripper_open']['image'], np.rad2deg(angle))
+                    new_rect = image_gripper_open_transformed.get_rect()
+                    self.surf.blit(image_gripper_open_transformed, (mid_x - new_rect[2] / 2, mid_y - new_rect[3] / 2))
 
         # self.surf = pygame.transform.flip(self.surf, False, True)
         self.screen.blit(self.surf, (0, 0))
