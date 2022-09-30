@@ -172,6 +172,7 @@ class TinyUR5Env(gym.Env):
                         config['objects'][obj]['position']['y'] * self.scale]
                 self.manip_objs[obj]['pos_z'] = config['objects'][obj]['position']['z'] * self.scale
                 self.manip_objs[obj]['size_z'] = config['objects'][obj]['size']['z'] * self.scale
+                self.manip_objs[obj]['orientation'] = 0.
                 self.manip_objs[obj]['lru_score'] = 0
             
                 self.manip_objs[obj]['image'] = \
@@ -185,6 +186,7 @@ class TinyUR5Env(gym.Env):
         self.grab = None
         self.grab_position = None
         self.grab_position_z = None
+        self.grab_orientation = None
         self.highest_lru_score = 0
 
 
@@ -215,6 +217,12 @@ class TinyUR5Env(gym.Env):
                 # mid_y = (start_y + end_y) / 2
         return np.array([end_x, end_y])
 
+
+    def _eef_orientation_(self):
+        # print('eef', self.robot_joints[0] + self.robot_joints[1] + self.robot_joints[2])
+        return self.robot_joints[0] + self.robot_joints[1] + self.robot_joints[2]
+
+
     def _l2_(self, eef, position):
         return ((eef[0] - position[0]) ** 2 + (eef[1] - position[1]) ** 2) ** (1/2)
 
@@ -243,7 +251,7 @@ class TinyUR5Env(gym.Env):
 
     def step(self, action: np.ndarray, eef_z=None):
         # print([self.manip_objs[env_obj]['lru_score'] for env_obj in self.manip_objs if 'pos_xy' in self.manip_objs[env_obj]])
-        print(action, self.robot_joints)
+        # print(action, self.robot_joints)
         # Convert a possible numpy bool to a Python bool.
         terminated = False
         reward = 0
@@ -262,6 +270,8 @@ class TinyUR5Env(gym.Env):
         if self.grab is not None:
             self.manip_objs[self.grab]['pos_xy'] = eef + self.grab_position
             self.manip_objs[self.grab]['pos_z'] = self.eef_z + self.grab_position_z
+            self.manip_objs[self.grab]['orientation'] = self._eef_orientation_() + self.grab_orientation
+            # print(self.manip_objs[self.grab]['orientation'])
 
             if self.manip_objs[self.grab]['pos_z'] < 0:
                 self.manip_objs[self.grab]['pos_z'] = 0
@@ -279,6 +289,7 @@ class TinyUR5Env(gym.Env):
                         self.grab = obj
                         self.grab_position = self.manip_objs[obj]['pos_xy'] - eef
                         self.grab_position_z = self.manip_objs[self.grab]['pos_z'] - self.eef_z
+                        self.grab_orientation = self.manip_objs[self.grab]['orientation'] - self._eef_orientation_()
                         self.highest_lru_score += 1
                         self.manip_objs[obj]['lru_score'] = self.highest_lru_score
                         self.manip_objs.move_to_end(obj, last=False)
@@ -286,6 +297,8 @@ class TinyUR5Env(gym.Env):
         else:
             self.grab = None
             self.grab_position = None
+            self.grab_position_z = None
+            self.grab_orientation = None
         # print(self.grab_position, eef, self.positions[1], 2)
 
 
@@ -483,9 +496,17 @@ class TinyUR5Env(gym.Env):
         self.surf.blit(self.env_objs['wood']['image'], (0, 0))
         for obj in list(self.manip_objs.keys())[::-1]:
             if 'pos_xy' in self.manip_objs[obj]:
-                self.surf.blit(self.manip_objs[obj]['image'], self._calculate_img_starting_pos(
+
+                image_transformed = pygame.transform.rotate(
+                    self.manip_objs[obj]['image'], np.rad2deg(self.manip_objs[obj]['orientation']))
+                print(obj, self.manip_objs[obj]['orientation'])
+                new_rect = image_transformed.get_rect()
+                # self.surf.blit(image_lim_transformed, (mid_x - new_rect[2] / 2, mid_y - new_rect[3] / 2))
+
+
+                self.surf.blit(image_transformed, self._calculate_img_starting_pos(
                     self.manip_objs[obj]['pos_xy'],
-                    self.manip_objs[obj]['size_xy']
+                    [new_rect[2], new_rect[3]]
                 ))
         # self.surf.blit(self.image_apple, self.positions[0] - self.size[0] / 2)
         # self.surf.blit(self.image_orange, self.positions[1] - self.size[1] / 2)

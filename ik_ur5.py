@@ -6,7 +6,7 @@ def pick_orange(env):
     # env = TinyUR5Env(render_mode='human')
     for i in range(100):
         action = env.ik([-360, 300, 1])
-        print(action)
+        # print(action)
         action[-1] = -0.1
 
         # print(i, env._eef_())
@@ -26,7 +26,7 @@ def pick_orange(env):
 
     for i in range(20):
         action = env.ik([-360, 300, 1])
-        print(action)
+        # print(action)
         action[-1] = 0.1
 
         # print(i, env._eef_())
@@ -43,7 +43,7 @@ def pick_orange(env):
 
     for i in range(120):
         action = env.ik([0, 300, 1])
-        print(action)
+        # print(action)
         action[-1] = 0.1
 
         # print(i, env._eef_())
@@ -63,7 +63,7 @@ def rotate_orange(env):
     # env = TinyUR5Env(render_mode='human')
     for i in range(100):
         action = env.ik([-360, 300, 1])
-        print(action)
+        # print(action)
         action[-1] = -0.1
 
         # print(i, env._eef_())
@@ -83,7 +83,7 @@ def rotate_orange(env):
 
     for i in range(20):
         action = env.ik([-360, 300, 1])
-        print(action)
+        # print(action)
         action[-1] = 0.1
 
         # print(i, env._eef_())
@@ -100,7 +100,7 @@ def rotate_orange(env):
 
     for i in range(60):
         action = env.ik([-360, 300, -1])
-        print(action)
+        # print(action)
         action[-1] = 0.1
 
         # print(i, env._eef_())
@@ -116,7 +116,7 @@ def rotate_orange(env):
 
     for i in range(60):
         action = env.ik([-360, 300, 1])
-        print(action)
+        # print(action)
         action[-1] = 0.1
 
         # print(i, env._eef_())
@@ -136,7 +136,7 @@ def pick_orange_and_apple(env):
     # env = TinyUR5Env(render_mode='human')
     for i in range(100):
         action = env.ik([-360, 300, 1])
-        print(action)
+        # print(action)
         action[-1] = -0.1
 
         # print(i, env._eef_())
@@ -156,7 +156,7 @@ def pick_orange_and_apple(env):
 
     for i in range(20):
         action = env.ik([-360, 300, 1])
-        print(action)
+        # print(action)
         action[-1] = 0.1
 
         # print(i, env._eef_())
@@ -173,7 +173,7 @@ def pick_orange_and_apple(env):
 
     for i in range(120):
         action = env.ik([0, 300, 1])
-        print(action)
+        # print(action)
         action[-1] = 0.1
 
         # print(i, env._eef_())
@@ -189,7 +189,7 @@ def pick_orange_and_apple(env):
 
     for i in range(20):
         action = env.ik([0, 300, 1])
-        print(action)
+        # print(action)
         action[-1] = -0.1
 
         # print(i, env._eef_())
@@ -205,7 +205,7 @@ def pick_orange_and_apple(env):
 
     for i in range(120):
         action = env.ik([-360, 300, -1])
-        print(action)
+        # print(action)
         action[-1] = -0.1
 
         # print(i, env._eef_())
@@ -221,7 +221,7 @@ def pick_orange_and_apple(env):
 
     for i in range(20):
         action = env.ik([-360, 300, -1])
-        print(action)
+        # print(action)
         action[-1] = 0.1
 
         # print(i, env._eef_())
@@ -238,7 +238,7 @@ def pick_orange_and_apple(env):
 
     for i in range(120):
         action = env.ik([0, 300, 1])
-        print(action)
+        # print(action)
         action[-1] = 0.1
 
         # print(i, env._eef_())
