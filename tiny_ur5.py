@@ -242,8 +242,8 @@ class TinyUR5Env(gym.Env):
 
 
     def step(self, action: np.ndarray, eef_z=None):
-        print([self.manip_objs[env_obj]['lru_score'] for env_obj in self.manip_objs if 'pos_xy' in self.manip_objs[env_obj]])
-
+        # print([self.manip_objs[env_obj]['lru_score'] for env_obj in self.manip_objs if 'pos_xy' in self.manip_objs[env_obj]])
+        print(action, self.robot_joints)
         # Convert a possible numpy bool to a Python bool.
         terminated = False
         reward = 0
@@ -282,6 +282,7 @@ class TinyUR5Env(gym.Env):
                         self.highest_lru_score += 1
                         self.manip_objs[obj]['lru_score'] = self.highest_lru_score
                         self.manip_objs.move_to_end(obj, last=False)
+                        break
         else:
             self.grab = None
             self.grab_position = None
@@ -346,9 +347,12 @@ class TinyUR5Env(gym.Env):
         surf.blit(rotated_image, rotated_image_rect)
 
 
-    def ik(self, xy):
+    def get_pos_xy(self, manip_obj):
+        return self.manip_objs[manip_obj]['pos_xy']
 
-        def x_constraint(q, xy):
+    def ik(self, xyo):
+
+        def x_constraint(q, xyo):
             """Returns the corresponding hand xy coordinates for
             a given set of joint angle values [shoulder, elbow, wrist],
             and the above defined arm segment lengths, L
@@ -359,10 +363,11 @@ class TinyUR5Env(gym.Env):
             returns : np.array
                 the difference between current and desired x position
             """
+            xy = xyo[:2]
             xy = [self.scale * x for x in xy]
             return self.lim_length * np.sin(q[0]) + self.lim_length * np.sin(q[0] + q[1]) + self.tool_center_point * np.sin(q[0] + q[1] + q[2]) - xy[0]
 
-        def y_constraint(q, xy):
+        def y_constraint(q, xyo):
             """Returns the corresponding hand xy coordinates for
             a given set of joint angle values [shoulder, elbow, wrist],
             and the above defined arm segment lengths, L
@@ -373,9 +378,39 @@ class TinyUR5Env(gym.Env):
             returns : np.array
                 the difference between current and desired y position
             """
+            xy = xyo[:2]
             xy = [self.scale * x for x in xy]
             return self.lim_length * np.cos(q[0]) + self.lim_length * np.cos(q[0] + q[1]) + self.tool_center_point * np.cos(q[0] + q[1] + q[2]) - xy[1]
 
+        def sin_o_constraint(q, xyo):
+            """Returns the corresponding hand xy coordinates for
+            a given set of joint angle values [shoulder, elbow, wrist],
+            and the above defined arm segment lengths, L
+            q : np.array
+                the list of current joint angles
+            xy : np.array
+                current xy position (not used)
+            returns : np.array
+                the difference between current and desired y position
+            """
+            
+            o = xyo[-1]
+            return (np.sin(q[0] + q[1] + q[2]) - np.sin(o)) ** 2
+
+        def cos_o_constraint(q, xyo):
+            """Returns the corresponding hand xy coordinates for
+            a given set of joint angle values [shoulder, elbow, wrist],
+            and the above defined arm segment lengths, L
+            q : np.array
+                the list of current joint angles
+            xy : np.array
+                current xy position (not used)
+            returns : np.array
+                the difference between current and desired y position
+            """
+            
+            o = xyo[-1]
+            return (np.cos(q[0] + q[1] + q[2]) - np.cos(o)) ** 2 + (np.sin(q[0] + q[1] + q[2]) - np.sin(o)) ** 2
 
         def distance_to_default(q, *args):
             """Objective function to minimize
@@ -400,11 +435,13 @@ class TinyUR5Env(gym.Env):
             func=distance_to_default,
             x0=self.robot_joints,
             eqcons=[x_constraint,
-                    y_constraint],
+                    y_constraint,
+                    # sin_o_constraint,
+                    cos_o_constraint],
             # uncomment to add in min / max angles for the joints
             # ieqcons=[joint_limits_upper_constraint,
             #          joint_limits_lower_constraint],
-            args=(xy,),
+            args=(xyo,),
             iprint=0)  # iprint=0 suppresses output
         return ik_result
     

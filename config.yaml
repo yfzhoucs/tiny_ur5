@@ -64,7 +64,7 @@ objects:
       z: 100
     image: 'assets/apple.png'
     position:
-      x: 160
+      x: 240
       y: 400
       z: 0
 
