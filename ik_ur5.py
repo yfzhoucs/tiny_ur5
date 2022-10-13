@@ -1,5 +1,6 @@
 from tiny_ur5 import TinyUR5Env
 import imageio
+import yaml
 
 
 def pick_orange(env):
@@ -97,38 +98,38 @@ def rotate_orange(env):
         #     images.append(img)
         if done:
             observation, info = env.reset(return_info=True)
+    while True:
+        for i in range(60):
+            action = env.ik([-360, 300, -1])
+            # print(action)
+            action[-1] = 0.1
 
-    for i in range(60):
-        action = env.ik([-360, 300, -1])
-        # print(action)
-        action[-1] = 0.1
+            # print(i, env._eef_())
+            observation, reward, done, info = env.step(action)
+            # print(observation)
+            img = env.render()
+            # print(img[0].shape)
+            img = env.render('rgb_array')
+            # if i % 2 == 0:
+            #     images.append(img)
+            if done:
+                observation, info = env.reset(return_info=True)
 
-        # print(i, env._eef_())
-        observation, reward, done, info = env.step(action)
-        # print(observation)
-        img = env.render()
-        # print(img[0].shape)
-        img = env.render('rgb_array')
-        # if i % 2 == 0:
-        #     images.append(img)
-        if done:
-            observation, info = env.reset(return_info=True)
+        for i in range(60):
+            action = env.ik([-360, 300, 1])
+            # print(action)
+            action[-1] = 0.1
 
-    for i in range(60):
-        action = env.ik([-360, 300, 1])
-        # print(action)
-        action[-1] = 0.1
-
-        # print(i, env._eef_())
-        observation, reward, done, info = env.step(action)
-        # print(observation)
-        img = env.render()
-        # print(img[0].shape)
-        img = env.render('rgb_array')
-        # if i % 2 == 0:
-        #     images.append(img)
-        if done:
-            observation, info = env.reset(return_info=True)
+            # print(i, env._eef_())
+            observation, reward, done, info = env.step(action)
+            # print(observation)
+            img = env.render()
+            # print(img[0].shape)
+            img = env.render('rgb_array')
+            # if i % 2 == 0:
+            #     images.append(img)
+            if done:
+                observation, info = env.reset(return_info=True)
 
 
 
@@ -144,6 +145,7 @@ def pick_orange_and_apple(env):
         # print(observation)
         img = env.render()
         img = env.render('rgb_array')
+        print(env.robot_joints)
         # print(img.shape)
         # exit()
 
@@ -165,6 +167,7 @@ def pick_orange_and_apple(env):
         img = env.render()
         # print(img[0].shape)
         img = env.render('rgb_array')
+        print(env.robot_joints)
 
         # if i % 2 == 0:
         #     images.append(img)
@@ -182,6 +185,7 @@ def pick_orange_and_apple(env):
         img = env.render()
         # print(img[0].shape)
         img = env.render('rgb_array')
+        print(env.robot_joints)
         # if i % 2 == 0:
         #     images.append(img)
         if done:
@@ -198,6 +202,7 @@ def pick_orange_and_apple(env):
         img = env.render()
         # print(img[0].shape)
         img = env.render('rgb_array')
+        print(env.robot_joints)
         # if i % 2 == 0:
         #     images.append(img)
         if done:
@@ -214,6 +219,7 @@ def pick_orange_and_apple(env):
         img = env.render()
         # print(img[0].shape)
         img = env.render('rgb_array')
+        print(env.robot_joints)
         # if i % 2 == 0:
         #     images.append(img)
         if done:
@@ -230,6 +236,7 @@ def pick_orange_and_apple(env):
         img = env.render()
         # print(img[0].shape)
         img = env.render('rgb_array')
+        print(env.robot_joints)
         # if i % 2 == 0:
         #     images.append(img)
         if done:
@@ -247,6 +254,7 @@ def pick_orange_and_apple(env):
         img = env.render()
         # print(img[0].shape)
         img = env.render('rgb_array')
+        print(env.robot_joints)
         # if i % 2 == 0:
         #     images.append(img)
         if done:
@@ -255,11 +263,17 @@ def pick_orange_and_apple(env):
 
 
 # observation, info = env.reset(seed=42, return_info=True)
-env = TinyUR5Env(render_mode='human')
+with open('config.yaml', "r") as stream:
+    try:
+        config = yaml.safe_load(stream)
+        # print(config, type(config))
+    except yaml.YAMLError as exc:
+        print(exc)
+env = TinyUR5Env(config=config, render_mode='human')
 
 images = []
 observation, info = env.reset(seed=42, return_info=True)
-pick_orange_and_apple(env)
+rotate_orange(env)
 
 
 

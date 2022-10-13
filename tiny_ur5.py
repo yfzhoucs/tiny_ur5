@@ -26,6 +26,7 @@ import pygame
 import scipy
 import yaml
 from collections import OrderedDict
+import copy
 
 
 class TinyUR5Env(gym.Env):
@@ -86,15 +87,20 @@ class TinyUR5Env(gym.Env):
         "render_fps": 30,
     }
 
-    def __init__(self, yaml_file='config.yaml', render_mode: Optional[str] = None, goal_velocity=0, screen_width=1600, screen_height=800):
+    # def __init__(self, yaml_file='config.yaml', render_mode: Optional[str] = None, goal_velocity=0, initializer=None):
+    def __init__(self, config, render_mode: Optional[str] = None, goal_velocity=0):
 
-        with open(yaml_file, "r") as stream:
-            try:
-                config = yaml.safe_load(stream)
-                # print(config, type(config))
-            except yaml.YAMLError as exc:
-                print(exc)
-        # exit()
+        # with open(yaml_file, "r") as stream:
+        #     try:
+        #         config = yaml.safe_load(stream)
+        #         # print(config, type(config))
+        #     except yaml.YAMLError as exc:
+        #         print(exc)
+        # # exit()
+
+        # if initializer is not None:
+        #     config = initializer.initialize
+        self.config = config
 
         self.min_action = -np.pi * 2 - 0.01
         self.max_action = np.pi * 2 + 0.01
@@ -134,14 +140,20 @@ class TinyUR5Env(gym.Env):
             low=self.min_action, high=self.max_action, shape=(4,), dtype=np.float32
         )
 
-        self.robot_joints = np.zeros((4,), dtype=np.float32)
-        self.robot_joints[0] = -1.57
-        self.robot_joints[1] = 1.57
-        self.robot_joints[2] = 1.57
-        self.robot_joints_init = np.zeros((4,), dtype=np.float32)
-        self.robot_joints_init[0] = -1.57
-        self.robot_joints_init[1] = 1.57
-        self.robot_joints_init[2] = 1.57
+        if 'init_joints' not in config:
+            self.robot_joints = np.zeros((4,), dtype=np.float32)
+            self.robot_joints[0] = -1.57
+            self.robot_joints[1] = 1.57
+            self.robot_joints[2] = 0
+            self.robot_joints_init = np.zeros((4,), dtype=np.float32)
+            self.robot_joints_init[0] = -1.57
+            self.robot_joints_init[1] = 1.57
+            self.robot_joints_init[2] = 0
+        else:
+            self.robot_joints = np.zeros((4,), dtype=np.float32)
+            for i in range(4):
+                self.robot_joints[i] = config['init_joints'][i]
+            self.robot_joints_init = copy.deepcopy(self.robot_joints)    
         self.lim_length = config['objects']['lim']['length'] * self.scale
 
         self.Kp = 15
@@ -181,7 +193,7 @@ class TinyUR5Env(gym.Env):
                         self.manip_objs[obj]['size_xy'])
         # exit()
 
-        print(self.env_objs)
+        # print(self.manip_objs)
         self.eef_z = 120 * self.scale
         self.grab = None
         self.grab_position = None
@@ -219,8 +231,10 @@ class TinyUR5Env(gym.Env):
 
 
     def _eef_orientation_(self):
-        # print('eef', self.robot_joints[0] + self.robot_joints[1] + self.robot_joints[2])
-        return self.robot_joints[0] + self.robot_joints[1] + self.robot_joints[2]
+        # print('joints0', self.robot_joints[0], self.robot_joints[1], self.robot_joints[2])
+        # print('joints1', float(self.robot_joints[0]), float(self.robot_joints[1]), float(self.robot_joints[2]))
+        return float(self.robot_joints[0]) + float(self.robot_joints[1]) + float(self.robot_joints[2])
+        # return float(self.robot_joints[0] + self.robot_joints[1] + self.robot_joints[2])
 
 
     def _l2_(self, eef, position):
@@ -228,7 +242,8 @@ class TinyUR5Env(gym.Env):
 
 
     def _grab_(self, position, eef):
-        grab = (self._l2_(eef, position) < 10 * self.scale)
+        grab = (self._l2_(eef, position) < 30 * self.scale)
+        # print(self._l2_(eef, position))
         return grab
 
 
@@ -249,6 +264,29 @@ class TinyUR5Env(gym.Env):
             return False
 
 
+    def _get_serialized_objs_(self):
+        objs = OrderedDict()
+        keys = [
+            'size_xy',
+            'pos_xy',
+            'pos_z',
+            'size_z',
+            'orientation',
+            'lru_score',
+        ]
+        for obj in self.manip_objs:
+            objs[obj] = {}
+            for key in keys:
+                objs[obj][key] = self.manip_objs[obj][key]
+        return objs
+
+    def _max_speed_(self, disp, lim):
+        if disp > lim:
+            return lim
+        if disp < -lim:
+            return -lim
+        return disp
+
     def step(self, action: np.ndarray, eef_z=None):
         # print([self.manip_objs[env_obj]['lru_score'] for env_obj in self.manip_objs if 'pos_xy' in self.manip_objs[env_obj]])
         # print(action, self.robot_joints)
@@ -259,19 +297,28 @@ class TinyUR5Env(gym.Env):
         # action is target angles of the joints
         assert action.shape[0] == self.robot_joints.shape[0]
         for i in range(action.shape[0]):
-            self.robot_joints[i] = self.robot_joints[i] + self.Kp * self._ang_diff(action[i], self.robot_joints[i]) * self.dt
+            # print('before change', self.robot_joints[i])
+            # self.robot_joints[i] = self.robot_joints[i] + self.Kp * self._ang_diff(action[i], self.robot_joints[i]) * self.dt
+            # self.robot_joints[i] = self.robot_joints[i] + self._max_speed_(
+            #     self._ang_diff(action[i], self.robot_joints[i]), self.Kp * self.dt)
+            # print('after change', self.robot_joints[i])
+            self.robot_joints[i] = self.robot_joints[i] + self.Kp * 2 * self._ang_diff(action[i], self.robot_joints[i]) * self.dt
+
 
         eef = self._eef_()
         if eef_z is not None:
             self.eef_z = eef_z * self.scale
         # print(f'eef_z: {self.eef_z}')
 
-
+        # print('grab', self.grab)
         if self.grab is not None:
+            assert self.grab_orientation is not None
             self.manip_objs[self.grab]['pos_xy'] = eef + self.grab_position
             self.manip_objs[self.grab]['pos_z'] = self.eef_z + self.grab_position_z
+            # print('grab orientation', self.grab_orientation)
+            # print('eef orientation', self._eef_orientation_())
             self.manip_objs[self.grab]['orientation'] = self._eef_orientation_() + self.grab_orientation
-            # print(self.manip_objs[self.grab]['orientation'])
+            # print('orientation', self.manip_objs[self.grab]['orientation'])
 
             if self.manip_objs[self.grab]['pos_z'] < 0:
                 self.manip_objs[self.grab]['pos_z'] = 0
@@ -289,6 +336,7 @@ class TinyUR5Env(gym.Env):
                         self.grab = obj
                         self.grab_position = self.manip_objs[obj]['pos_xy'] - eef
                         self.grab_position_z = self.manip_objs[self.grab]['pos_z'] - self.eef_z
+                        assert self.manip_objs[self.grab]['orientation'] is not None
                         self.grab_orientation = self.manip_objs[self.grab]['orientation'] - self._eef_orientation_()
                         self.highest_lru_score += 1
                         self.manip_objs[obj]['lru_score'] = self.highest_lru_score
@@ -305,11 +353,16 @@ class TinyUR5Env(gym.Env):
         # self.renderer.render_step()
 
         state = {
-            'joints': self.robot_joints,
-            'eef': self._eef_(),
-            'positions': [self.manip_objs[obj]['pos_xy'] for obj in self.manip_objs if 'pos_xy' in self.manip_objs[obj]],
-            'grabbed_object': self.grab,
-            'grab_position': self.grab_position
+            'joints': copy.deepcopy(self.robot_joints),
+            'eef': copy.deepcopy(self._eef_()),
+            'eef_z': copy.deepcopy(self.eef_z),
+            'eef_orientation': copy.deepcopy(self._eef_orientation_()),
+            'positions': copy.deepcopy(self._get_serialized_objs_()),
+            'grabbed_object': copy.deepcopy(self.grab),
+            'grab_position': copy.deepcopy(self.grab_position),
+            'grab_position_z': copy.deepcopy(self.grab_position_z),
+            'grab_orientation': copy.deepcopy(self.grab_orientation),
+            'scale': copy.deepcopy(self.scale),
         }
 
         return state, reward, terminated, {}
@@ -340,6 +393,8 @@ class TinyUR5Env(gym.Env):
     
     def _ang_diff(self, theta1, theta2):
         # Returns the difference between two angles in the range -pi to +pi
+        # print('angle diff', (theta1 - theta2 + np.pi) % (2 * np.pi) - np.pi)
+        # print(f'theta1 {theta1} theta2 {theta2}')
         return (theta1 - theta2 + np.pi) % (2 * np.pi) - np.pi
 
     def render(self, mode="human"):
@@ -441,8 +496,12 @@ class TinyUR5Env(gym.Env):
             # weights found with trial and error,
             # get some wrist bend, but not much
             weight = [1, 1, 0.5]
-            return np.sqrt(np.sum([(qi - q0i)**2 * wi
-                           for qi, q0i, wi in zip(q, self.robot_joints_init.tolist()[:-1], weight)]))
+            try:
+                action = np.sqrt(np.sum([(qi - q0i)**2 * wi
+                            for qi, q0i, wi in zip(q, self.robot_joints_init.tolist()[:-1], weight)]))
+            except Exception:
+                print(Exception)
+            return action
 
         ik_result = scipy.optimize.fmin_slsqp(
             func=distance_to_default,
@@ -496,10 +555,14 @@ class TinyUR5Env(gym.Env):
         self.surf.blit(self.env_objs['wood']['image'], (0, 0))
         for obj in list(self.manip_objs.keys())[::-1]:
             if 'pos_xy' in self.manip_objs[obj]:
-
-                image_transformed = pygame.transform.rotate(
-                    self.manip_objs[obj]['image'], np.rad2deg(self.manip_objs[obj]['orientation']))
-                print(obj, self.manip_objs[obj]['orientation'])
+                
+                try:
+                    image_transformed = pygame.transform.rotate(
+                        self.manip_objs[obj]['image'], np.rad2deg(self.manip_objs[obj]['orientation']))
+                except Exception as e:
+                    print(e)
+                    print(self.manip_objs[obj]['orientation'], np.rad2deg(self.manip_objs[obj]['orientation']))
+                # print(obj, self.manip_objs[obj]['orientation'])
                 new_rect = image_transformed.get_rect()
                 # self.surf.blit(image_lim_transformed, (mid_x - new_rect[2] / 2, mid_y - new_rect[3] / 2))
 
@@ -568,6 +631,12 @@ class TinyUR5Env(gym.Env):
             pygame.display.quit()
             pygame.quit()
             self.isopen = False
+    
+    def get_base_xy(self):
+        return self.robot_base_xy
+    
+    def get_joint_angles(self):
+        return self.robot_joints
 
 
 if __name__ == '__main__':

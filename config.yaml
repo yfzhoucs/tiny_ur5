@@ -46,16 +46,16 @@ objects:
       y: 400
       z: 0
 
-  orange2:
-    size: 
-      x: 80
-      y: 80
-      z: 100
-    image: 'assets/orange.png'
-    position:
-      x: 600
-      y: 400
-      z: 0
+  # orange2:
+  #   size: 
+  #     x: 80
+  #     y: 80
+  #     z: 100
+  #   image: 'assets/orange.png'
+  #   position:
+  #     x: 600
+  #     y: 400
+  #     z: 0
 
   apple:
     size: 
@@ -114,8 +114,8 @@ objects:
   
   milk_bottle:
     size: 
-      x: 120
-      y: 360
+      x: 60
+      y: 180
       z: 100
     image: 'assets/milk_bottle.png'  
     position:
