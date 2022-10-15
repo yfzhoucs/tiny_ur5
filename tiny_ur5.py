@@ -503,18 +503,32 @@ class TinyUR5Env(gym.Env):
                 print(Exception)
             return action
 
-        ik_result = scipy.optimize.fmin_slsqp(
-            func=distance_to_default,
-            x0=self.robot_joints,
-            eqcons=[x_constraint,
-                    y_constraint,
-                    # sin_o_constraint,
-                    cos_o_constraint],
-            # uncomment to add in min / max angles for the joints
-            # ieqcons=[joint_limits_upper_constraint,
-            #          joint_limits_lower_constraint],
-            args=(xyo,),
-            iprint=0)  # iprint=0 suppresses output
+        if len(xyo) == 3:
+            ik_result = scipy.optimize.fmin_slsqp(
+                func=distance_to_default,
+                x0=self.robot_joints,
+                eqcons=[x_constraint,
+                        y_constraint,
+                        # sin_o_constraint,
+                        cos_o_constraint],
+                # uncomment to add in min / max angles for the joints
+                # ieqcons=[joint_limits_upper_constraint,
+                #          joint_limits_lower_constraint],
+                args=(xyo,),
+                iprint=0)  # iprint=0 suppresses output
+        elif len(xyo) == 2:
+            ik_result = scipy.optimize.fmin_slsqp(
+                func=distance_to_default,
+                x0=self.robot_joints,
+                eqcons=[x_constraint,
+                        y_constraint,
+                        # sin_o_constraint,
+                        ],
+                # uncomment to add in min / max angles for the joints
+                # ieqcons=[joint_limits_upper_constraint,
+                #          joint_limits_lower_constraint],
+                args=(xyo,),
+                iprint=0)  # iprint=0 suppresses output
         return ik_result
     
     def _calculate_img_starting_pos(self, img_pos, img_size):
