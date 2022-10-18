@@ -55,7 +55,7 @@ class DataCollector:
             while not current_action_close:
                 # print(env.robot_joints, action)
                 observation, reward, done, info = env.step(action, eef_z=50)
-                img = env.render()
+                # img = env.render()
                 img = env.render('rgb_array')
                 recorder.record_step(step, img, observation, sentence, action, task)
 
@@ -92,7 +92,7 @@ class DataCollector:
 if __name__ == '__main__':
     data_collector = DataCollector(
         yaml_file='config.yaml', 
-        data_folder='collected_long_inst', 
+        data_folder='/share/yzhou298/dataset/tinyur5/collected_long_inst', 
         data_id_start=0, 
-        data_id_end=100)
+        data_id_end=5000)
     data_collector.collect_rollouts()

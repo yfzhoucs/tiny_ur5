@@ -242,7 +242,7 @@ class TinyUR5Env(gym.Env):
 
 
     def _grab_(self, position, eef):
-        grab = (self._l2_(eef, position) < 30 * self.scale)
+        grab = (self._l2_(eef, position) < 50 * self.scale)
         # print(self._l2_(eef, position))
         return grab
 
@@ -417,6 +417,11 @@ class TinyUR5Env(gym.Env):
 
     def get_pos_xy(self, manip_obj):
         return self.manip_objs[manip_obj]['pos_xy']
+
+
+    def get_pos_orientation(self, manip_obj):
+        return self.manip_objs[manip_obj]['orientation']
+
 
     def ik(self, xyo):
 
