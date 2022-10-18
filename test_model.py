@@ -1,5 +1,3 @@
-from ast import main
-from operator import mod
 from tiny_ur5 import TinyUR5Env
 import yaml
 from initializer import Initializer
