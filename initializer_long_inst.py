@@ -189,7 +189,9 @@ class Initializer:
                 available_objs.append(obj)
 
         # Choose an action
-        action = random.sample(self.available_actions, 1)[0]
+        # action = random.sample(self.available_actions, 1)[0]
+        # action = random.sample(['push_both', 'pick_food'], 1)[0]
+        action = random.sample(['pick_food'], 1)[0]
 
         # Choose objects to place on the table
         num_obj = random.randint(self.obj_num_low, self.obj_num_high)

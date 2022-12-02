@@ -1,6 +1,6 @@
 from tiny_ur5 import TinyUR5Env
 import yaml
-from initializer import Initializer
+from initializer_long_inst import Initializer
 import torch
 import numpy as np
 import skimage
@@ -16,33 +16,49 @@ class TaskSuccess:
         self.env = env
         self.task = task
 
-        self.target = task['target']
-        self.target_init_pos = env.get_pos_xy(self.target)
-        self.target_init_orientation = env.get_pos_orientation(self.target)
+        self.targets = task['target']
+
+        self.target_init_pos = []
+        for i in range(len(self.targets)):
+            self.target_init_pos.append(env.get_pos_xy(self.targets[i]))
+        self.target_init_orientation = []    
+        for i in range(len(self.targets)):
+            self.target_init_orientation.append(env.get_pos_orientation(self.targets[i]))
 
         self.task = task['action']
     
     def success(self):
-        if self.task == 'push_forward':
-            if self.env.get_pos_xy(self.target)[1] - self.target_init_pos[1] > 20:
-                return True
-        elif self.task == 'push_backward':
-            if self.env.get_pos_xy(self.target)[1] - self.target_init_pos[1] < -20:
-                return True
-        elif self.task == 'push_left':
-            if self.env.get_pos_xy(self.target)[0] - self.target_init_pos[0] < -20:
-                return True
-        elif self.task == 'push_right':
-            if self.env.get_pos_xy(self.target)[0] - self.target_init_pos[0] > 20:
-                return True
-        elif self.task == 'rotate_clock':
-            # if self.env.get_pos_orientation(self.target) - self.target_init_orientation > 0.3:
-            if self.env.get_pos_orientation(self.target) - self.target_init_orientation < -0.3:
-                return True
-        elif self.task == 'rotate_counterclock':
-            # if self.env.get_pos_orientation(self.target) - self.target_init_orientation < -0.3:
-            if self.env.get_pos_orientation(self.target) - self.target_init_orientation > 0.3:
-                return True
+        if self.task == 'push_both':
+            success = True
+            if self.env.get_pos_xy(self.targets[0])[1] - self.target_init_pos[0][1] < 20:
+                success = False
+            if self.env.get_pos_xy(self.targets[1])[1] - self.target_init_pos[1][1] < 20:
+                success = False
+            return success
+        elif self.task == 'place_both':
+            success = True
+            if abs(self.env.get_pos_xy(self.targets[0])[1] - self.env.get_pos_xy(self.targets[2])[1]) > 10:
+                success = False
+            if abs(self.env.get_pos_xy(self.targets[0])[0] - self.env.get_pos_xy(self.targets[2])[0]) > 10:
+                success = False
+            if abs(self.env.get_pos_xy(self.targets[1])[1] - self.env.get_pos_xy(self.targets[2])[1]) > 10:
+                success = False
+            if abs(self.env.get_pos_xy(self.targets[1])[0] - self.env.get_pos_xy(self.targets[2])[0]) > 10:
+                success = False
+            return success
+        elif self.task == 'place_row':
+            success = True
+            if abs(self.env.get_pos_xy(self.targets[0])[1] - self.env.get_pos_xy(self.targets[2])[1]) > 10:
+                success = False
+            if abs(self.env.get_pos_xy(self.targets[1])[1] - self.env.get_pos_xy(self.targets[2])[1]) > 10:
+                success = False
+            return success
+        elif self.task == 'pick_food':
+            success = True
+            for i in range(len(self.targets)):
+                if self.env.get_pos_xy(self.targets[i])[1] - self.target_init_pos[i][1] < 20:
+                    success = False
+            return success
         
         return False
 
@@ -211,28 +227,27 @@ def calculate_success_rate(filename):
 if __name__ == '__main__':
     device = torch.device('cpu')
 
-    # # # # BCZ
-    method = 'bcz'
-    # # # ckpt = '/share/yzhou298/ckpts/tinyur5/train-baseline-bcz-film-resnet-huberloss/200000.pth'
-    ckpt = '/share/yzhou298/ckpts/tinyur5/train-baseline-bcz-film-resnet-huberloss-2-larger-dataset-corrected-rotation/200000.pth'
-    # # # ckpt = '/share/yzhou298/ckpts/tinyur5/train-baseline-bcz-film-resnet-huberloss-long-inst/60000.pth'
+    # # # BCZ
+    # method = 'bcz'
+    # # ckpt = '/share/yzhou298/ckpts/tinyur5/train-baseline-bcz-film-resnet-huberloss/200000.pth'
+    # # ckpt = '/share/yzhou298/ckpts/tinyur5/train-baseline-bcz-film-resnet-huberloss-2-larger-dataset-corrected-rotation/130000.pth'
+    # ckpt = '/share/yzhou298/ckpts/tinyur5/train-baseline-bcz-film-resnet-huberloss-long-inst/60000.pth'
     
-    # Ours
+    # # Ours
     # method = 'ours'
-    # ckpt = '/share/yzhou298/ckpts/tinyur5/train-tinyur5-rgb-sub-attn-range/90000.pth'
-    # ckpt = '/share/yzhou298/ckpts/tinyur5/train-tinyur5-rgb-sub-attn-range-larger-dataset/120000.pth'
-    # ckpt = '/share/yzhou298/ckpts/tinyur5/train-tinyur5-rgb-sub-attn-range-larger-dataset/340000.pth'
-    # ckpt = '/share/yzhou298/ckpts/tinyur5/train-tinyur5-rgb-sub-attn-range-larger-dataset-corrected-rotation/310000.pth'
-    # ckpt = '/share/yzhou298/ckpts/tinyur5/train-tinyur5-rgb-sub-attn-range-larger-dataset-corrected-rotation-on-original-dataset/580000.pth'
+    # # ckpt = '/share/yzhou298/ckpts/tinyur5/train-tinyur5-rgb-sub-attn-range/90000.pth'
+    # # ckpt = '/share/yzhou298/ckpts/tinyur5/train-tinyur5-rgb-sub-attn-range-larger-dataset/120000.pth'
+    # # ckpt = '/share/yzhou298/ckpts/tinyur5/train-tinyur5-rgb-sub-attn-range-larger-dataset/340000.pth'
+    # # ckpt = '/share/yzhou298/ckpts/tinyur5/train-tinyur5-rgb-sub-attn-range-larger-dataset-corrected-rotation/310000.pth'
+    # ckpt = '/share/yzhou298/ckpts/tinyur5/train-ours-huberloss-long-inst//400000.pth'
     
     
-    model = load_model(ckpt, method, device)
-    modeltester = ModelTester('config.yaml', model, model_forward_fn, device, method=method, show_cv2=True, show_human=False)
-    modeltester.test_1_rollout(0)
-    # modeltester.test(100, method+'_correct_rotation_original_dataset_580000')
+    # model = load_model(ckpt, method, device)
+    # modeltester = ModelTester('config.yaml', model, model_forward_fn, device, method=method, show_cv2=True, show_human=False)
+    # # modeltester.test_1_rollout(0)
+    # modeltester.test(100, method+'_long_inst')
 
     # calculate_success_rate('results_ours_100.json')
     # calculate_success_rate('results_bcz_100.json')
     # calculate_success_rate('results_bcz_correct_rotation_100.json')
-    # calculate_success_rate('results_bcz_correct_rotation_200000_100.json')
-    # calculate_success_rate('results_ours_correct_rotation_original_dataset_580000_100.json')
+    calculate_success_rate('results_ours_long_inst_100.json')

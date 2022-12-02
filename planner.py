@@ -176,12 +176,12 @@ class Planner:
             return [
                 Reach(self.env, self.task['target']),
                 Grip(self.env),
-                Rotate(self.env, 1),]
+                Rotate(self.env, -1),]
         elif self.task['action'] == 'rotate_counterclock':
             return [
                 Reach(self.env, self.task['target']),
                 Grip(self.env),
-                Rotate(self.env, -1),]
+                Rotate(self.env, 1),]
 
 
     def generate_action(self):

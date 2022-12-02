@@ -1,3 +1,4 @@
+
 import torch
 import torch.nn as nn
 import numpy as np
@@ -208,15 +209,13 @@ class Backbone(nn.Module):
         self.task_id_encoder, _ = clip.load("ViT-B/32", self.device)
         self.task_id_embedding_narrower = nn.Linear(512, embedding_size)
 
-        self.controller_xyz = Controller(num_traces=3, num_weight_points=num_weight_points, embedding_size=embedding_size)
-        self.controller_rpy = Controller(num_traces=6, num_weight_points=num_weight_points, embedding_size=embedding_size)
-        self.controller_grip = Controller(num_traces=1, num_weight_points=num_weight_points, embedding_size=embedding_size)
+        self.controller_xyz = Controller(num_traces=6, num_weight_points=num_weight_points, embedding_size=embedding_size)
+        # self.controller_rpy = Controller(num_traces=6, num_weight_points=num_weight_points, embedding_size=embedding_size)
+        self.controller_grip = Controller(num_traces=2, num_weight_points=num_weight_points, embedding_size=embedding_size)
 
     def _img_pathway_(self, img, task_embed):
-        # Comprehensive Visual Encoder. img_embedding is the square token list        
-        # print(self.visual_encoder(img, task_embed).shape)
-        # exit()
-        img_embedding = self.visual_encoder(img, task_embed).squeeze(2).squeeze(2)
+        # Comprehensive Visual Encoder. img_embedding is the square token list
+        img_embedding = self.visual_encoder(img, task_embed).squeeze()
         img_embedding = self.visual_narrower(img_embedding)
         img_embedding = F.relu(img_embedding)
         return img_embedding
@@ -240,8 +239,8 @@ class Backbone(nn.Module):
         dmp_weights_xyz = self.controller_xyz(img_embed)
         dmp_weights_grip = self.controller_grip(img_embed)
 
-        dmp_weights_xyz = dmp_weights_xyz.reshape(img.shape[0], 3, self.num_weight_points)
-        dmp_weights_grip = dmp_weights_grip.reshape(img.shape[0], 1, self.num_weight_points)
+        dmp_weights_xyz = dmp_weights_xyz.reshape(img.shape[0], 6, self.num_weight_points)
+        dmp_weights_grip = dmp_weights_grip.reshape(img.shape[0], 2, self.num_weight_points)
 
         dmp_weights = torch.cat((dmp_weights_xyz, dmp_weights_grip), axis=1)
         

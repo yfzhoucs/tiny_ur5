@@ -113,7 +113,7 @@ class DataCollector:
 if __name__ == '__main__':
     data_collector = DataCollector(
         yaml_file='config.yaml', 
-        data_folder='collected7_random_init_angles', 
-        data_id_start=3338, 
-        data_id_end=3500)
+        data_folder='/share/yzhou298/dataset/tinyur5/collected7_random_init_angles_correct_rotation', 
+        data_id_start=0, 
+        data_id_end=5000)
     data_collector.collect_rollouts()
