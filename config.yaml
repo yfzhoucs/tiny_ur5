@@ -144,3 +144,102 @@ objects:
       x: 1000
       y: 600
       z: 0
+
+  basketball:
+    size:
+      x: 100
+      y: 100
+      z: 100
+    image: 'assets/basketball.png'
+    position:
+      x: 1000
+      y: 600
+      z: 0
+
+  book:
+    size:
+      x: 100
+      y: 100
+      z: 100
+    image: 'assets/book.png'
+    position:
+      x: 1000
+      y: 600
+      z: 0
+
+  bulb:
+    size:
+      x: 100
+      y: 100
+      z: 100
+    image: 'assets/bulb.png'
+    position:
+      x: 1000
+      y: 600
+      z: 0
+
+  mouse:
+    size:
+      x: 100
+      y: 100
+      z: 100
+    image: 'assets/mouse.png'
+    position:
+      x: 1000
+      y: 600
+      z: 0
+
+  mouse:
+    size:
+      x: 100
+      y: 100
+      z: 100
+    image: 'assets/rubikscube.png'
+    position:
+      x: 1000
+      y: 600
+      z: 0
+
+  A:
+    size:
+      x: 120
+      y: 80
+      z: 100
+    image: 'assets/A.png'
+    position:
+      x: 240
+      y: 200
+      z: 0
+
+  B:
+    size:
+      x: 120
+      y: 80
+      z: 100
+    image: 'assets/B.png'
+    position:
+      x: 240
+      y: 200
+      z: 0
+
+  C:
+    size:
+      x: 120
+      y: 80
+      z: 100
+    image: 'assets/C.png'
+    position:
+      x: 240
+      y: 200
+      z: 0
+
+  D:
+    size:
+      x: 120
+      y: 80
+      z: 100
+    image: 'assets/D.png'
+    position:
+      x: 240
+      y: 200
+      z: 0

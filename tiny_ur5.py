@@ -97,7 +97,7 @@ class TinyUR5Env(gym.Env):
         #     except yaml.YAMLError as exc:
         #         print(exc)
         # # exit()
-
+        #
         # if initializer is not None:
         #     config = initializer.initialize
         self.config = config
@@ -661,6 +661,8 @@ class TinyUR5Env(gym.Env):
 if __name__ == '__main__':
     # env = TinyUR5Env(render_mode='rgb_array')
     env = TinyUR5Env(render_mode='human')
+    # img = env.render('rgb_array')
+
 
     observation, info = env.reset(seed=42, return_info=True)
 
@@ -669,8 +671,13 @@ if __name__ == '__main__':
         input()
         action = env.action_space.sample()
         observation, reward, done, info = env.step(action)
-        img = env.render()
+        # img = env.render()
+        img = env.render('rgb_array')
         # print(img[0].shape)
+        # import cv2
+
+        # cv2.imshow('tiny_ur5', cv2.cvtColor(img, cv2.COLOR_RGB2BGR))
+        # cv2.waitKey(1)
 
         if done:
             observation, info = env.reset(return_info=True)
