@@ -76,9 +76,9 @@ class DataCollector:
             while not current_action_close:
                 # print(env.robot_joints, action)
                 observation, reward, done, info = env.step(action, eef_z=50)
-                # img = env.render()
-                img = env.render('rgb_array')
-                recorder.record_step(step, img, observation, sentence, action, task)
+                img = env.render()
+                # img = env.render('rgb_array')
+                # recorder.record_step(step, img, observation, sentence, action, task)
 
                 current_action_close = self._close_(env.robot_joints[:3], action[:3]) and env.robot_joints[-1] * action[-1] > 0
                 step += 1
@@ -113,7 +113,7 @@ class DataCollector:
 if __name__ == '__main__':
     data_collector = DataCollector(
         yaml_file='config.yaml', 
-        data_folder='/share/yzhou298/dataset/tinyur5/collected7_random_init_angles_correct_rotation', 
+        data_folder='/Users/navyasrireddy/research/tiny_ur5/sample_data',
         data_id_start=0, 
-        data_id_end=5000)
+        data_id_end=50)
     data_collector.collect_rollouts()

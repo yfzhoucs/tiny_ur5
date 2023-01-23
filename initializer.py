@@ -9,12 +9,25 @@ class Initializer:
         self.obj_num_low = obj_num_low
         self.obj_num_high = obj_num_high
         self.available_actions = [
-            'push_forward', 
-            'push_backward', 
-            'push_left', 
-            'push_right', 
-            'rotate_clock', 
-            'rotate_counterclock']
+            'push_forward',
+            'push_backward',
+            'push_left',
+            'push_right',
+            'rotate_clock',
+            'rotate_counterclock',
+            'place_forward',
+            'place_backward',
+            'place_left',
+            'place_right',
+            'place_forward',
+            'place_backward',
+            'place_left',
+            'place_right']
+        # self.available_actions = [
+        #     'place_forward',
+        #     'place_backward',
+        #     'place_left',
+        #     'place_right']
 
         self.verb_template = {
             'push_forward': [
@@ -40,7 +53,27 @@ class Initializer:
                 'drag',
                 'move',
                 'get',
-            ],  
+            ],
+            'place_forward': [
+                'place',
+                'put',
+                'keep',
+            ],
+            'place_backward': [
+                'place',
+                'put',
+                'keep',
+            ],
+            'place_left': [
+                'place',
+                'put',
+                'keep',
+            ],
+            'place_right': [
+                'place',
+                'put',
+                'keep',
+            ],
             'rotate_clock': [
                 'rotate',
                 'revolve',
@@ -74,7 +107,27 @@ class Initializer:
                 'to the right',
                 'right',
                 'to the right hand side',
-            ],  
+            ],
+            'place_forward': [
+                'forward',
+                'to the front',
+                'ahead'
+            ],
+            'place_backward': [
+                'backward',
+                'back',
+                'to the back',
+            ],
+            'place_left': [
+                'to the left',
+                'left',
+                'to the left hand side',
+            ],
+            'place_right': [
+                'to the right',
+                'right',
+                'to the right hand side',
+            ],
             'rotate_clock': [
                 'clockwise',
                 'clock wise',
@@ -128,6 +181,43 @@ class Initializer:
                 'DSLR',
                 'nikon',
                 'canon'
+            ],
+            'mouse': [
+                'mouse'
+            ],
+            'basketball': [
+                'basketball'
+
+            ],
+            'book': [
+                'book'
+            ],
+            'bulb': [
+                'bulb'
+            ],
+            'rubikscube': [
+                'rubikscube',
+                'rubik'
+            ],
+            'A': [
+                'A',
+                'a',
+                'letter a'
+            ],
+            'B': [
+                'B',
+                'b',
+                'letter b'
+            ],
+            'C': [
+                'C',
+                'c',
+                'letter c'
+            ],
+            'D': [
+                'D',
+                'd',
+                'letter d'
             ]
         }
         return
@@ -189,8 +279,11 @@ class Initializer:
 
         task = {
             'action': random.sample(self.available_actions, 1)[0],
-            'target': random.sample(sampled_objs, 1)[0],
+            # 'action': 'place_right',
+            'target': random.sample(sampled_objs, 2),
+            # 'target2': random.sample(sampled_objs, 1)[1],
         }
+        # task = {'action': 'place_backward', 'target': 'clock', 'target2': 'watermelon'}
 
         config['init_joints'] = np.random.uniform(-np.pi / 2, np.pi / 2, size=(4,))
         config['init_joints'][-1] *= 0.2
@@ -213,6 +306,6 @@ class Initializer:
     def get_sentence(self):
         v = self.get_verb(self.task['action'])
         adv = self.get_adv(self.task['action'])
-        np = self.get_np(self.task['target'])
+        np = self.get_np(self.task['target'][0])
         sentence = v + ' ' + np + ' ' + adv
         return sentence
